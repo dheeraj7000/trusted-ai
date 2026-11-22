@@ -104,11 +104,16 @@ export interface Scenario {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Base URL for API requests.  When NEXT_PUBLIC_API_URL is set (e.g. in
+ *  docker-compose) the client calls the backend directly.  Otherwise
+ *  requests go through the Next.js /api proxy rewrite for local dev. */
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api";
+
 async function request<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
