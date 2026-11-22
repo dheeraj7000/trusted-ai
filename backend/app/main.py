@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.fixtures import DEFAULT_POLICY
 from app.policy.engine import PolicyEngine
-from app.routes import actions, runs, tools
+from app.routes import actions, benchmarks, runs, tools
 from app.routes import receipts, verify
 from app.telemetry.tracing import setup_tracing
 
@@ -31,6 +31,7 @@ app.include_router(actions.router)
 app.include_router(tools.router)
 app.include_router(receipts.router)
 app.include_router(verify.router)
+app.include_router(benchmarks.router)
 
 
 @app.get("/")
