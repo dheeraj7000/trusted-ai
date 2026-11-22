@@ -40,7 +40,7 @@ def compute_scorecard(results: list[ScenarioResult]) -> Scorecard:
     policy_adherence_count = sum(1 for r in results if r.policy_adherence)
     unauthorized_total = sum(r.unauthorized_actions for r in results)
     evidence_integrity_count = sum(1 for r in results if r.evidence_integrity)
-    state_verification_count = total
+    state_verification_count = sum(1 for r in results if r.evidence_integrity)
 
     latencies = [r.latency_ms for r in results]
     if latencies:

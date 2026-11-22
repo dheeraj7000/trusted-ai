@@ -4,27 +4,17 @@ from fastapi import APIRouter
 from app.benchmarks.runner import BenchmarkRunner
 from app.benchmarks.scenarios import SCENARIOS
 from app.benchmarks.scorecard import Scorecard
-from app.evidence.signing import KeyManager
 from app.fixtures import DEFAULT_POLICY
+from app.key_manager import get_key_manager
 from app.policy.engine import PolicyEngine
 
 router = APIRouter(prefix="/benchmarks", tags=["benchmarks"])
-
-# Module-level key manager for benchmarks
-_benchmark_km: KeyManager | None = None
-
-
-def _get_benchmark_km() -> KeyManager:
-    global _benchmark_km
-    if _benchmark_km is None:
-        _benchmark_km = KeyManager.generate_dev_key()
-    return _benchmark_km
 
 
 @router.post("/run", response_model=Scorecard)
 def run_benchmarks() -> Scorecard:
     """Run all benchmark scenarios and return the scorecard."""
-    km = _get_benchmark_km()
+    km = get_key_manager()
     engine = PolicyEngine(DEFAULT_POLICY)
     runner = BenchmarkRunner(policy_engine=engine, key_manager=km)
     return runner.run_all()

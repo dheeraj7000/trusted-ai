@@ -15,13 +15,14 @@ tracer = get_tracer()
 
 
 def _parameters_match(evaluated_params: dict[str, Any], tool_params: dict[str, Any]) -> bool:
-    """Check that evaluated parameter values match tool execution parameters.
+    """Check that the approval covers the parameters being executed.
 
-    Only keys present in both dicts are compared, ensuring the approval
-    was granted for the same parameter values being executed.
+    Every key in tool_params must exist in evaluated_params with the same
+    value. This prevents an empty-params evaluation from approving
+    arbitrary tool executions.
     """
-    for key, value in evaluated_params.items():
-        if key in tool_params and tool_params[key] != value:
+    for key, value in tool_params.items():
+        if key not in evaluated_params or evaluated_params[key] != value:
             return False
     return True
 

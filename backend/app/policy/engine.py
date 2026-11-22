@@ -28,7 +28,15 @@ class PolicyEngine:
 
     def _evaluate_refund(self, action: ActionEvaluateRequest) -> PolicyDecision:
         """Evaluate a refund action against REFUND_LIMIT policy."""
-        amount = action.parameters.get("amount", 0)
+        if "amount" not in action.parameters:
+            return PolicyDecision(
+                action_type="refund",
+                decision="BLOCK",
+                reason="Refund evaluation requires 'amount' parameter",
+                policy_version=self.config.policy_version,
+                evaluated_at=datetime.now(timezone.utc),
+            )
+        amount = action.parameters["amount"]
 
         if amount <= self.config.refund_autonomous_limit:
             return PolicyDecision(

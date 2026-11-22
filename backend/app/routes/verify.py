@@ -5,9 +5,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.evidence.receipt import verify_receipt
-from app.evidence.signing import KeyManager
+from app.key_manager import get_key_manager
 from app.models import ProofReceipt
-from app.routes.receipts import RECEIPTS, _get_key_manager
+from app.routes.receipts import RECEIPTS
 
 router = APIRouter()
 
@@ -32,6 +32,6 @@ def verify(body: VerifyRequest) -> dict[str, Any]:
                 status_code=404, detail=f"Receipt {body.receipt_id} not found"
             )
 
-    km = _get_key_manager()
+    km = get_key_manager()
     result = verify_receipt(receipt, km)
     return result

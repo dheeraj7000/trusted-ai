@@ -2,8 +2,8 @@
 from fastapi import APIRouter, HTTPException
 
 from app.evidence.receipt import build_receipt
-from app.evidence.signing import KeyManager
 from app.fixtures import DEFAULT_POLICY
+from app.key_manager import get_key_manager
 from app.models import ProofReceipt
 from app.routes.runs import RUNS
 
@@ -11,16 +11,6 @@ router = APIRouter()
 
 # In-memory receipt storage
 RECEIPTS: dict[str, ProofReceipt] = {}
-
-# Module-level key manager (initialized on first use)
-_key_manager: KeyManager | None = None
-
-
-def _get_key_manager() -> KeyManager:
-    global _key_manager
-    if _key_manager is None:
-        _key_manager = KeyManager.generate_dev_key()
-    return _key_manager
 
 
 @router.post("/runs/{run_id}/finalize", response_model=ProofReceipt)
@@ -30,7 +20,7 @@ def finalize_run(run_id: str) -> ProofReceipt:
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
 
-    km = _get_key_manager()
+    km = get_key_manager()
     receipt = build_receipt(run_state=run, policy=DEFAULT_POLICY, key_manager=km)
     RECEIPTS[run_id] = receipt
     return receipt
