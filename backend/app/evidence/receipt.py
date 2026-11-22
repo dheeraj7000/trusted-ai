@@ -1,5 +1,5 @@
 """Evidence receipt building and verification."""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from app.evidence.hashing import (
@@ -45,7 +45,7 @@ def build_receipt(
             f"{benchmark_id}:{benchmark_score}".encode("utf-8")
         ).hexdigest()
 
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat()
 
     receipt_root = compute_receipt_root(
         run_id=run_state.run_id,
@@ -119,7 +119,6 @@ def verify_receipt(receipt: ProofReceipt, key_manager: KeyManager) -> dict[str, 
         errors.append("Signature verification failed")
 
     valid = all(checks.values())
-
     return {
         "valid": valid,
         "checks": checks,

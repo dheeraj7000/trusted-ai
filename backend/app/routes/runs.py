@@ -1,5 +1,5 @@
 """Run management endpoints."""
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
@@ -8,10 +8,8 @@ from app.models import RunCreate, RunState
 from app.telemetry.tracing import get_tracer
 
 router = APIRouter()
-
 # In-memory run storage
 RUNS: dict[str, RunState] = {}
-
 tracer = get_tracer()
 
 
@@ -27,7 +25,6 @@ def get_run(run_id: str) -> RunState:
 def create_run(body: RunCreate) -> RunState:
     """Create a new agent run."""
     run_id = str(uuid4())
-
     with tracer.start_as_current_span("run.create", attributes={"run_id": run_id}):
         run = RunState(
             run_id=run_id,
@@ -35,13 +32,11 @@ def create_run(body: RunCreate) -> RunState:
             model_provider=body.model_provider,
             model_id=body.model_id,
             status="pending",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
-
         if body.scenario is not None:
             from app.agent.runner import AgentRunner
             from app.main import policy_engine
-
             runner = AgentRunner(
                 policy_engine=policy_engine,
                 model_provider=body.model_provider,
@@ -49,7 +44,6 @@ def create_run(body: RunCreate) -> RunState:
             )
             run = runner.run(body.scenario)
             run.agent_id = body.agent_id
-
         RUNS[run.run_id] = run
     return run
 

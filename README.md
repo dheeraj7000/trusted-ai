@@ -97,6 +97,15 @@ The frontend provides two demo paths:
 5. **Verify** – confirms the receipt is VALID
 6. **Tamper** – modifying any receipt field causes verification to return INVALID
 
+## Known Limitations
+
+- **In-memory state is process-local.** The `RUNS` and `RECEIPTS` dicts, as
+  well as the module-level `KeyManager` singleton, live in a single process.
+  Running multiple uvicorn workers (e.g. `--workers 4`) will give each worker
+  its own disjoint copy of state. For production multi-process or multi-node
+  deployments, replace the in-memory stores with a shared backend such as
+  Redis or PostgreSQL and load signing keys from a central secret store.
+
 ## Running Tests
 
 ```bash

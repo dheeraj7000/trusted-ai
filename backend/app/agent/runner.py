@@ -1,5 +1,5 @@
 """Mock agent runner for demo scenarios."""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
 
@@ -41,7 +41,6 @@ class AgentRunner:
         )
 
         actions = scenario.get("actions", [])
-
         with create_run_span(run_state.run_id) as root_span:
             for action_def in actions:
                 action_type = action_def.get("action_type")
@@ -50,7 +49,7 @@ class AgentRunner:
                 # Record action requested
                 run_state.events.append({
                     "type": "action_requested",
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "action_type": action_type,
                     "parameters": parameters,
                 })
@@ -62,7 +61,6 @@ class AgentRunner:
                     action_type=action_type,
                     parameters=parameters,
                 )
-
                 with tracer.start_as_current_span(
                     "policy.evaluate",
                     attributes={"action_type": action_type},
@@ -72,7 +70,7 @@ class AgentRunner:
 
                 run_state.events.append({
                     "type": "policy_decision",
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "action_type": action_type,
                     "decision": decision.decision,
                     "reason": decision.reason,
@@ -89,20 +87,20 @@ class AgentRunner:
 
                     run_state.events.append({
                         "type": "tool_executed",
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                         "action_type": action_type,
                         "result": result,
                     })
                 else:
                     run_state.events.append({
                         "type": "tool_blocked",
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                         "action_type": action_type,
                         "reason": decision.reason,
                     })
 
         run_state.status = "completed"
-        run_state.completed_at = datetime.utcnow()
+        run_state.completed_at = datetime.now(timezone.utc)
         return run_state
 
     def _execute_tool(

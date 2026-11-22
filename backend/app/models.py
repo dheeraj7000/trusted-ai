@@ -1,6 +1,5 @@
 """Pydantic models for AgentProof."""
-
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -55,7 +54,7 @@ class PolicyDecision(BaseModel):
     decision: Literal["ALLOW", "BLOCK"]
     reason: str
     policy_version: str
-    evaluated_at: datetime = Field(default_factory=datetime.utcnow)
+    evaluated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class RunCreate(BaseModel):
@@ -72,7 +71,7 @@ class RunState(BaseModel):
     model_id: str
     status: Literal["pending", "running", "completed", "failed"] = "pending"
     events: list[dict[str, Any]] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: Optional[datetime] = None
 
 

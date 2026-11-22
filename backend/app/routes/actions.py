@@ -1,5 +1,5 @@
 """Action evaluation endpoints."""
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter
 
@@ -8,7 +8,6 @@ from app.routes.runs import RUNS
 from app.telemetry.tracing import get_tracer
 
 router = APIRouter()
-
 tracer = get_tracer()
 
 
@@ -30,11 +29,10 @@ def evaluate_action(body: ActionEvaluateRequest) -> PolicyDecision:
     if run is not None:
         run.events.append({
             "type": "policy_decision",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "action_type": body.action_type,
             "parameters": body.parameters,
             "decision": decision.decision,
             "reason": decision.reason,
         })
-
     return decision

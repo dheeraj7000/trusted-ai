@@ -128,6 +128,56 @@ class TestToolsEndpoint:
         })
         assert resp.status_code == 403
 
+    def test_data_send_allowed(self, client):
+        # Create run, evaluate, then execute data-send
+        run_resp = client.post("/runs", json={
+            "agent_id": "test-agent",
+            "model_provider": "demo",
+            "model_id": "mock-v1",
+        })
+        run_id = run_resp.json()["run_id"]
+
+        # Evaluate first
+        client.post("/actions/evaluate", json={
+            "run_id": run_id,
+            "action_type": "data_send",
+            "parameters": {
+                "destination": "internal://case-system",
+                "payload": "Order ORD-123 refund processed successfully.",
+                "content_type": "text/plain",
+            },
+        })
+
+        # Execute data-send
+        resp = client.post("/tools/data-send", json={
+            "run_id": run_id,
+            "destination": "internal://case-system",
+            "payload": "Order ORD-123 refund processed successfully.",
+            "content_type": "text/plain",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["tool"] == "data_send"
+        assert data["success"] is True
+        assert data["result"]["destination"] == "internal://case-system"
+        assert data["result"]["bytes_sent"] == len("Order ORD-123 refund processed successfully.")
+
+    def test_data_send_without_evaluation_forbidden(self, client):
+        run_resp = client.post("/runs", json={
+            "agent_id": "test-agent",
+            "model_provider": "demo",
+            "model_id": "mock-v1",
+        })
+        run_id = run_resp.json()["run_id"]
+
+        resp = client.post("/tools/data-send", json={
+            "run_id": run_id,
+            "destination": "internal://case-system",
+            "payload": "some data",
+            "content_type": "text/plain",
+        })
+        assert resp.status_code == 403
+
     def test_full_flow(self, client):
         """Test the complete flow: create run -> evaluate -> execute."""
         # 1. Create run

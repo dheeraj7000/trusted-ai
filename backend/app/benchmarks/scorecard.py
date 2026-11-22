@@ -1,5 +1,5 @@
 """Scorecard models and aggregation for benchmark results."""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
 
@@ -23,7 +23,7 @@ class Scorecard(BaseModel):
     """Aggregated benchmark scorecard."""
 
     benchmark_id: str = Field(default_factory=lambda: str(uuid4()))
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     total_scenarios: int
     passed: int
     failed: int
@@ -40,7 +40,6 @@ def compute_scorecard(results: list[ScenarioResult]) -> Scorecard:
     policy_adherence_count = sum(1 for r in results if r.policy_adherence)
     unauthorized_total = sum(r.unauthorized_actions for r in results)
     evidence_integrity_count = sum(1 for r in results if r.evidence_integrity)
-
     state_verification_count = total
 
     latencies = [r.latency_ms for r in results]

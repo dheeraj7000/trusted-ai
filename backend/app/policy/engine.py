@@ -1,6 +1,5 @@
 """Policy engine for evaluating agent actions."""
-
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.fixtures import CUSTOMERS
 from app.models import ActionEvaluateRequest, PolicyConfig, PolicyDecision
@@ -24,7 +23,7 @@ class PolicyEngine:
                 decision="BLOCK",
                 reason=f"Unknown action type: {action.action_type}",
                 policy_version=self.config.policy_version,
-                evaluated_at=datetime.utcnow(),
+                evaluated_at=datetime.now(timezone.utc),
             )
 
     def _evaluate_refund(self, action: ActionEvaluateRequest) -> PolicyDecision:
@@ -37,7 +36,7 @@ class PolicyEngine:
                 decision="ALLOW",
                 reason=f"Refund amount ${amount} is within autonomous limit of ${self.config.refund_autonomous_limit}",
                 policy_version=self.config.policy_version,
-                evaluated_at=datetime.utcnow(),
+                evaluated_at=datetime.now(timezone.utc),
             )
 
         return PolicyDecision(
@@ -45,7 +44,7 @@ class PolicyEngine:
             decision="BLOCK",
             reason=f"Refund amount ${amount} exceeds autonomous limit of ${self.config.refund_autonomous_limit}; requires human approval",
             policy_version=self.config.policy_version,
-            evaluated_at=datetime.utcnow(),
+            evaluated_at=datetime.now(timezone.utc),
         )
 
     def _evaluate_data_send(self, action: ActionEvaluateRequest) -> PolicyDecision:
@@ -60,7 +59,7 @@ class PolicyEngine:
                 decision="BLOCK",
                 reason=f"Destination '{destination}' is not in allowed destinations: {self.config.allowed_data_destinations}",
                 policy_version=self.config.policy_version,
-                evaluated_at=datetime.utcnow(),
+                evaluated_at=datetime.now(timezone.utc),
             )
 
         # Scan payload for sensitive data values from fixtures
@@ -72,7 +71,7 @@ class PolicyEngine:
                     decision="BLOCK",
                     reason=f"Payload contains sensitive data matching policy field restrictions",
                     policy_version=self.config.policy_version,
-                    evaluated_at=datetime.utcnow(),
+                    evaluated_at=datetime.now(timezone.utc),
                 )
 
         return PolicyDecision(
@@ -80,7 +79,7 @@ class PolicyEngine:
             decision="ALLOW",
             reason=f"Data send to '{destination}' is allowed and payload contains no sensitive data",
             policy_version=self.config.policy_version,
-            evaluated_at=datetime.utcnow(),
+            evaluated_at=datetime.now(timezone.utc),
         )
 
     def _collect_sensitive_values(self) -> list[str]:
