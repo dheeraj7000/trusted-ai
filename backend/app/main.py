@@ -1,11 +1,12 @@
 """AgentProof FastAPI application."""
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.fixtures import DEFAULT_POLICY
 from app.policy.engine import PolicyEngine
 from app.routes import actions, runs, tools
+from app.routes import receipts, verify
+from app.telemetry.tracing import setup_tracing
 
 app = FastAPI(title="AgentProof", version="0.1.0")
 
@@ -21,10 +22,15 @@ app.add_middleware(
 # Module-level policy engine singleton
 policy_engine = PolicyEngine(DEFAULT_POLICY)
 
+# Initialize OpenTelemetry tracing
+setup_tracing()
+
 # Include routers
 app.include_router(runs.router)
 app.include_router(actions.router)
 app.include_router(tools.router)
+app.include_router(receipts.router)
+app.include_router(verify.router)
 
 
 @app.get("/")

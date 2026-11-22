@@ -1,5 +1,4 @@
 """Mock agent runner for demo scenarios."""
-
 from datetime import datetime
 from typing import Optional
 from uuid import uuid4
@@ -11,8 +10,11 @@ from app.models import (
     RunState,
 )
 from app.policy.engine import PolicyEngine
+from app.telemetry.tracing import create_run_span, get_tracer, record_event
 from app.tools.data_send import execute_data_send
 from app.tools.refund import execute_refund
+
+tracer = get_tracer()
 
 
 class AgentRunner:
@@ -39,50 +41,65 @@ class AgentRunner:
         )
 
         actions = scenario.get("actions", [])
-        for action_def in actions:
-            action_type = action_def.get("action_type")
-            parameters = action_def.get("parameters", {})
 
-            # Record action requested
-            run_state.events.append({
-                "type": "action_requested",
-                "timestamp": datetime.utcnow().isoformat(),
-                "action_type": action_type,
-                "parameters": parameters,
-            })
+        with create_run_span(run_state.run_id) as root_span:
+            for action_def in actions:
+                action_type = action_def.get("action_type")
+                parameters = action_def.get("parameters", {})
 
-            # Evaluate through policy engine
-            eval_request = ActionEvaluateRequest(
-                run_id=run_state.run_id,
-                action_type=action_type,
-                parameters=parameters,
-            )
-            decision = self.policy_engine.evaluate(eval_request)
-
-            run_state.events.append({
-                "type": "policy_decision",
-                "timestamp": datetime.utcnow().isoformat(),
-                "action_type": action_type,
-                "decision": decision.decision,
-                "reason": decision.reason,
-            })
-
-            # Execute or block based on decision
-            if decision.decision == "ALLOW":
-                result = self._execute_tool(action_type, parameters, run_state.run_id)
+                # Record action requested
                 run_state.events.append({
-                    "type": "tool_executed",
+                    "type": "action_requested",
                     "timestamp": datetime.utcnow().isoformat(),
                     "action_type": action_type,
-                    "result": result,
+                    "parameters": parameters,
                 })
-            else:
+                record_event(root_span, "action_requested", {"action_type": action_type})
+
+                # Evaluate through policy engine
+                eval_request = ActionEvaluateRequest(
+                    run_id=run_state.run_id,
+                    action_type=action_type,
+                    parameters=parameters,
+                )
+
+                with tracer.start_as_current_span(
+                    "policy.evaluate",
+                    attributes={"action_type": action_type},
+                ) as eval_span:
+                    decision = self.policy_engine.evaluate(eval_request)
+                    eval_span.set_attribute("decision", decision.decision)
+
                 run_state.events.append({
-                    "type": "tool_blocked",
+                    "type": "policy_decision",
                     "timestamp": datetime.utcnow().isoformat(),
                     "action_type": action_type,
+                    "decision": decision.decision,
                     "reason": decision.reason,
                 })
+
+                # Execute or block based on decision
+                if decision.decision == "ALLOW":
+                    with tracer.start_as_current_span(
+                        f"tool.{action_type}",
+                        attributes={"action_type": action_type},
+                    ) as tool_span:
+                        result = self._execute_tool(action_type, parameters, run_state.run_id)
+                        tool_span.set_attribute("success", result.get("success", False) if isinstance(result, dict) else False)
+
+                    run_state.events.append({
+                        "type": "tool_executed",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "action_type": action_type,
+                        "result": result,
+                    })
+                else:
+                    run_state.events.append({
+                        "type": "tool_blocked",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "action_type": action_type,
+                        "reason": decision.reason,
+                    })
 
         run_state.status = "completed"
         run_state.completed_at = datetime.utcnow()
