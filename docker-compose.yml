@@ -6,6 +6,9 @@ services:
       context: ./backend
     ports:
       - "8000:8000"
+    environment:
+      - AGENTPROOF_CORS_ORIGINS=http://localhost:3000
+      - AWS_REGION=us-west-2
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
       interval: 10s
