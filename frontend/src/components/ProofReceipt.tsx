@@ -1,36 +1,72 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Shield,
+  FileText,
+  Database,
+  Lock,
+  CheckCircle,
+  XCircle,
+  Copy,
+  Check,
+  AlertTriangle,
+} from "lucide-react";
 import type { ProofReceipt as Receipt, VerificationResult } from "@/lib/api";
 import { verifyReceipt } from "@/lib/api";
 
 function truncHash(hash: string): string {
   if (hash.length <= 16) return hash;
-  return `${hash.slice(0, 8)}…${hash.slice(-8)}`;
+  return `${hash.slice(0, 8)}...${hash.slice(-8)}`;
 }
 
 function CopyField({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
-
   const copy = async () => {
     await navigator.clipboard.writeText(value);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
-
   return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-gray-400 text-xs w-40 shrink-0">{label}</span>
-      <code className="text-xs truncate flex-1" title={value}>
+    <div className="flex items-center justify-between gap-2 py-1.5">
+      <span className="text-gray-500 text-xs w-36 shrink-0">{label}</span>
+      <code className="text-xs text-gray-300 truncate flex-1 font-mono" title={value}>
         {truncHash(value)}
       </code>
       <button
         onClick={copy}
-        className="text-xs text-blue-400 hover:text-blue-300 shrink-0"
+        className="text-gray-500 hover:text-brand-400 shrink-0 transition-colors"
         aria-label={`Copy ${label}`}
       >
-        {copied ? "Copied" : "Copy"}
+        {copied ? (
+          <Check className="h-3.5 w-3.5 text-accent-400" />
+        ) : (
+          <Copy className="h-3.5 w-3.5" />
+        )}
       </button>
+    </div>
+  );
+}
+
+function Section({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 text-brand-400" />
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+          {title}
+        </h3>
+      </div>
+      {children}
     </div>
   );
 }
@@ -46,9 +82,12 @@ export default function ProofReceiptCard({
 
   if (!receipt) {
     return (
-      <p className="text-sm text-gray-500 italic">
-        No receipt available. Run a demo first.
-      </p>
+      <div className="glass-card p-8 text-center">
+        <Lock className="h-8 w-8 text-gray-600 mx-auto mb-3" />
+        <p className="text-sm text-gray-500">
+          No receipt available. Run a demo first.
+        </p>
+      </div>
     );
   }
 
@@ -86,101 +125,131 @@ export default function ProofReceiptCard({
   };
 
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900 p-5 space-y-4">
-      {/* Identity */}
-      <section>
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
-          Identity
-        </h3>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          <dt className="text-gray-400">Agent ID</dt>
-          <dd>{receipt.agent_id}</dd>
-          <dt className="text-gray-400">Model Provider</dt>
-          <dd>{receipt.model_provider}</dd>
-          <dt className="text-gray-400">Model ID</dt>
-          <dd>{receipt.model_id}</dd>
-        </dl>
-      </section>
-
-      {/* Policy */}
-      <section>
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
-          Policy
-        </h3>
-        <p className="text-sm">{receipt.policy_version}</p>
-      </section>
-
-      {/* Evidence Roots */}
-      <section className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
-          Evidence Roots
-        </h3>
-        <CopyField label="Provenance Root" value={receipt.provenance_root} />
-        <CopyField label="Trace Root" value={receipt.trace_root} />
-        <CopyField label="State Root" value={receipt.state_root} />
-      </section>
-
-      {/* Verification */}
-      <section className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
-          Verification
-        </h3>
-        <CopyField label="Receipt Root" value={receipt.receipt_root} />
-        <CopyField label="Signature" value={receipt.signature} />
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-gray-400 text-xs w-40 shrink-0">Key ID</span>
-          <code className="text-xs truncate flex-1">{receipt.key_id}</code>
-        </div>
-      </section>
-
-      {/* Metadata */}
-      <section>
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
-          Metadata
-        </h3>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          <dt className="text-gray-400">Timestamp</dt>
-          <dd className="font-mono text-xs">{receipt.timestamp}</dd>
-          <dt className="text-gray-400">Version</dt>
-          <dd>{receipt.receipt_version}</dd>
-        </dl>
-      </section>
-
-      {/* Actions */}
-      <div className="flex gap-3 pt-2">
-        <button
-          onClick={handleVerify}
-          disabled={loading}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-500 disabled:opacity-50"
-        >
-          {loading ? "Verifying…" : "Verify"}
-        </button>
-        <button
-          onClick={handleTamper}
-          disabled={loading}
-          className="rounded-lg bg-yellow-600 px-4 py-2 text-sm font-medium hover:bg-yellow-500 disabled:opacity-50"
-        >
-          Tamper Demo
-        </button>
-      </div>
-
-      {/* Result badge */}
-      {result && (
-        <div
-          className={`mt-2 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold ${
-            result.valid
-              ? "bg-green-500/20 text-green-400 border border-green-500"
-              : "bg-red-500/20 text-red-400 border border-red-500"
-          }`}
-        >
-          {result.valid ? "✓ VALID" : "✗ INVALID"}
-          {tampered && !result.valid && (
-            <span className="text-xs font-normal opacity-75">
-              (tampered provenance_root)
+    <div className="mx-auto max-w-2xl">
+      <div className="glass-card overflow-hidden">
+        {/* Certificate header */}
+        <div className="border-b border-gray-800/50 bg-gray-900/50 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="h-5 w-5 text-brand-400" />
+              <div>
+                <h3 className="text-sm font-semibold text-white">
+                  Proof Receipt
+                </h3>
+                <p className="text-xs text-gray-500 font-mono">
+                  {receipt.run_id}
+                </p>
+              </div>
+            </div>
+            <span className="rounded-full border border-gray-700 bg-gray-800 px-3 py-1 text-xs text-gray-400">
+              v{receipt.receipt_version}
             </span>
-          )}
+          </div>
         </div>
-      )}
+
+        {/* Body */}
+        <div className="p-6 space-y-6">
+          <Section icon={Shield} title="Identity">
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+              <dt className="text-gray-500">Agent ID</dt>
+              <dd className="text-gray-200">{receipt.agent_id}</dd>
+              <dt className="text-gray-500">Model</dt>
+              <dd className="text-gray-200">
+                {receipt.model_provider}/{receipt.model_id}
+              </dd>
+            </dl>
+          </Section>
+
+          <Section icon={FileText} title="Policy">
+            <p className="text-sm text-gray-200">{receipt.policy_version}</p>
+          </Section>
+
+          <Section icon={Database} title="Evidence Roots">
+            <div className="space-y-0.5">
+              <CopyField
+                label="Provenance Root"
+                value={receipt.provenance_root}
+              />
+              <CopyField label="Trace Root" value={receipt.trace_root} />
+              <CopyField label="State Root" value={receipt.state_root} />
+            </div>
+          </Section>
+
+          <Section icon={Lock} title="Cryptography">
+            <div className="space-y-0.5">
+              <CopyField label="Receipt Root" value={receipt.receipt_root} />
+              <CopyField label="Signature" value={receipt.signature} />
+              <div className="flex items-center justify-between gap-2 py-1.5">
+                <span className="text-gray-500 text-xs w-36 shrink-0">
+                  Key ID
+                </span>
+                <code className="text-xs text-gray-300 truncate flex-1 font-mono">
+                  {receipt.key_id}
+                </code>
+              </div>
+            </div>
+          </Section>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={handleVerify}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 transition-colors"
+            >
+              <CheckCircle className="h-4 w-4" />
+              Verify Integrity
+            </button>
+            <button
+              onClick={handleTamper}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-5 py-2.5 text-sm font-medium text-yellow-400 hover:bg-yellow-500/20 disabled:opacity-50 transition-colors"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Tamper with Evidence
+            </button>
+          </div>
+
+          {/* Verification result */}
+          <AnimatePresence mode="wait">
+            {result && (
+              <motion.div
+                key={result.valid ? "valid" : "invalid"}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ type: "spring", duration: 0.5 }}
+                className={`flex items-center justify-center gap-3 rounded-xl border p-4 ${
+                  result.valid
+                    ? "border-accent-500/50 bg-accent-500/10 glow-green"
+                    : "border-danger-500/50 bg-danger-500/10 glow-red"
+                }`}
+              >
+                {result.valid ? (
+                  <>
+                    <CheckCircle className="h-6 w-6 text-accent-400" />
+                    <span className="text-lg font-bold text-accent-400">
+                      VERIFIED
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-6 w-6 text-danger-400" />
+                    <span className="text-lg font-bold text-danger-400">
+                      INVALID
+                    </span>
+                    {tampered && (
+                      <span className="text-xs text-danger-400/70">
+                        (tampered provenance_root detected)
+                      </span>
+                    )}
+                  </>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
     </div>
   );
 }
