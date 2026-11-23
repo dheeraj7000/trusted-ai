@@ -4,6 +4,7 @@ import hashlib
 import os
 from pathlib import Path
 
+import boto3
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, utils
 
@@ -14,10 +15,19 @@ KEYS_DIR = Path(__file__).resolve().parent.parent.parent / "keys"
 class KeyManager:
     """Manages ECDSA P-256 keys for signing evidence receipts."""
 
-    def __init__(self, private_key=None, public_key=None, key_id: str = "") -> None:
+    def __init__(self, private_key=None, public_key=None, key_id: str = "", *, kms_key_id: str = "") -> None:
         self._private_key = private_key
         self._public_key = public_key
         self.key_id = key_id
+        self._kms_key_id = kms_key_id
+        self._kms_client = None
+        if kms_key_id:
+            self._kms_client = boto3.client("kms")
+
+    @classmethod
+    def from_kms(cls, key_id: str) -> "KeyManager":
+        """Create a KeyManager backed by AWS KMS."""
+        return cls(key_id=key_id, kms_key_id=key_id)
 
     @classmethod
     def generate_dev_key(cls) -> "KeyManager":
@@ -82,6 +92,14 @@ class KeyManager:
 
     def sign(self, data_hex: str) -> str:
         """Sign the hex string bytes with ECDSA-SHA256, return base64-encoded signature."""
+        if self._kms_client:
+            response = self._kms_client.sign(
+                KeyId=self._kms_key_id,
+                Message=data_hex.encode("utf-8"),
+                MessageType="RAW",
+                SigningAlgorithm="ECDSA_SHA_256",
+            )
+            return base64.b64encode(response["Signature"]).decode("utf-8")
         if self._private_key is None:
             raise ValueError("No private key loaded")
         signature = self._private_key.sign(
@@ -92,6 +110,18 @@ class KeyManager:
 
     def verify_signature(self, data_hex: str, signature_b64: str) -> bool:
         """Verify a signature. Returns True if valid, False otherwise."""
+        if self._kms_client:
+            try:
+                response = self._kms_client.verify(
+                    KeyId=self._kms_key_id,
+                    Message=data_hex.encode("utf-8"),
+                    MessageType="RAW",
+                    Signature=base64.b64decode(signature_b64),
+                    SigningAlgorithm="ECDSA_SHA_256",
+                )
+                return response["SignatureValid"]
+            except Exception:
+                return False
         if self._public_key is None:
             raise ValueError("No public key loaded")
         try:

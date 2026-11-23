@@ -1,4 +1,6 @@
 """AgentProof FastAPI application."""
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -10,10 +12,13 @@ from app.telemetry.tracing import setup_tracing
 
 app = FastAPI(title="AgentProof", version="0.1.0")
 
-# CORS middleware for development
+# CORS middleware — configurable via AGENTPROOF_CORS_ORIGINS env var
+_cors_env = os.environ.get("AGENTPROOF_CORS_ORIGINS")
+_cors_origins = _cors_env.split(",") if _cors_env else ["http://localhost:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
