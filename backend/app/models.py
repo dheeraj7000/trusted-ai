@@ -87,10 +87,6 @@ class ChatRequest(BaseModel):
     message: str
 
 
-class ChatRequest(BaseModel):
-    message: str
-
-
 class ProofReceipt(BaseModel):
     receipt_version: str
     run_id: str
