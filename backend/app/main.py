@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.fixtures import DEFAULT_POLICY
 from app.policy.engine import PolicyEngine
-from app.routes import actions, benchmarks, runs, tools
+from app.routes import actions, agent, benchmarks, runs, tools
 from app.routes import receipts, verify
 from app.telemetry.tracing import setup_tracing
 
@@ -14,7 +14,14 @@ app = FastAPI(title="AgentProof", version="0.1.0")
 
 # CORS middleware — configurable via AGENTPROOF_CORS_ORIGINS env var
 _cors_env = os.environ.get("AGENTPROOF_CORS_ORIGINS")
-_cors_origins = _cors_env.split(",") if _cors_env else ["http://localhost:3000"]
+_cors_origins = (
+    _cors_env.split(",")
+    if _cors_env
+    else [
+        "http://localhost:3000",
+        "http://agentproof-alb-72725573.us-west-2.elb.amazonaws.com",
+    ]
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,6 +44,7 @@ app.include_router(tools.router)
 app.include_router(receipts.router)
 app.include_router(verify.router)
 app.include_router(benchmarks.router)
+app.include_router(agent.router)
 
 
 @app.get("/")

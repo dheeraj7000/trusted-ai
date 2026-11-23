@@ -83,6 +83,10 @@ class ToolResult(BaseModel):
     reason: Optional[str] = None
 
 
+class ChatRequest(BaseModel):
+    message: str
+
+
 class ProofReceipt(BaseModel):
     receipt_version: str
     run_id: str
@@ -103,3 +107,12 @@ class ProofReceipt(BaseModel):
     receipt_root: str
     signature: str
     key_id: str
+
+
+class ChatResponse(BaseModel):
+    reply: str
+    run_id: str
+    events: list[dict[str, Any]]
+    decisions: list[PolicyDecision]
+    receipt: Optional[ProofReceipt] = None
+    used_bedrock: bool

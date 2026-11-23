@@ -3,7 +3,61 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --glow-green: 0 0 20px rgba(16, 185, 129, 0.3), 0 0 60px rgba(16, 185, 129, 0.1);
+    --glow-red: 0 0 20px rgba(239, 68, 68, 0.3), 0 0 60px rgba(239, 68, 68, 0.1);
+    --glow-blue: 0 0 20px rgba(59, 130, 246, 0.3), 0 0 60px rgba(59, 130, 246, 0.1);
+  }
+
   body {
     @apply bg-gray-950 text-gray-100;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply rounded-2xl border border-gray-800/50 bg-gray-900/80 backdrop-blur-sm;
+  }
+
+  .glass-card-hover {
+    @apply rounded-2xl border border-gray-800/50 bg-gray-900/80 backdrop-blur-sm;
+    transition: all 0.3s;
+  }
+
+  .glass-card-hover:hover {
+    @apply border-gray-700/50 bg-gray-900/90;
+  }
+
+  .glow-green {
+    box-shadow: var(--glow-green);
+  }
+
+  .glow-red {
+    box-shadow: var(--glow-red);
+  }
+
+  .glow-blue {
+    box-shadow: var(--glow-blue);
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent;
+  }
+
+  .shimmer-bg {
+    background: linear-gradient(
+      90deg,
+      rgba(59, 130, 246, 0.05) 0%,
+      rgba(59, 130, 246, 0.15) 50%,
+      rgba(59, 130, 246, 0.05) 100%
+    );
+    background-size: 200% 100%;
+    @apply animate-shimmer;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
 }
