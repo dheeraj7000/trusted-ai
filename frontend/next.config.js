@@ -1,16 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async rewrites() {
-    // In production (docker), NEXT_PUBLIC_API_URL is set and the client
-    // calls the backend directly - no proxy needed.  For local dev the
-    // proxy rewrite forwards /api/* to the local uvicorn server.
-    if (process.env.NEXT_PUBLIC_API_URL) {
-      return [];
-    }
+    // Always proxy /api/* to the backend.  In production the backend is
+    // reachable from the Next.js container via the ALB on port 8000.
+    const backendUrl =
+      process.env.BACKEND_URL || "http://agentproof-alb-72725573.us-west-2.elb.amazonaws.com:8000";
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8000/:path*",
+        destination: `${backendUrl}/:path*`,
       },
     ];
   },

@@ -101,28 +101,13 @@ export interface Scenario {
 }
 
 // ---------------------------------------------------------------------------
-// Agent Chat interfaces (FEAT-001)
-// ---------------------------------------------------------------------------
-
-export interface ChatRequest {
-  message: string;
-}
-
-export interface ChatResponse {
-  reply: string;
-  run_id: string;
-  events: Record<string, unknown>[];
-  decisions: { action_type: string; decision: string; reason: string }[];
-  receipt: Record<string, unknown> | null;
-  used_bedrock: boolean;
-}
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Base URL for API requests. */
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api";
+/** Base URL for API requests.  When NEXT_PUBLIC_API_URL is set (e.g. in
+ *  docker-compose) the client calls the backend directly.  Otherwise
+ *  requests go through the Next.js /api proxy rewrite for local dev. */
+const API_BASE = "/api";
 
 async function request<T>(
   path: string,
@@ -235,11 +220,4 @@ export function runBenchmarks(): Promise<Scorecard> {
 
 export function getScenarios(): Promise<Scenario[]> {
   return request<Scenario[]>("/benchmarks/scenarios");
-}
-
-export function agentChat(message: string): Promise<ChatResponse> {
-  return request<ChatResponse>("/agent/chat", {
-    method: "POST",
-    body: JSON.stringify({ message }),
-  });
 }
